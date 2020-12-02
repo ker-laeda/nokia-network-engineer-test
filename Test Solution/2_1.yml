@@ -1,0 +1,41 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian:latest
+        container_name: deb_host_a
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.1/24 dev eth0
+            && ip addr add 192.168.2.1/24 dev eth0
+            && ip link add name dum0 type dummy
+            && ip link set dum0 up
+            && ip address add 10.0.0.1/32 dev dum0
+            && ip link add name dum1 type dummy
+            && ip link set dum1 up
+            && ip address add 10.0.0.2/32 dev dum1
+            && echo 100 table_b >> /etc/iproute2/rt_tables
+            && echo 101 table_c >> /etc/iproute2/rt_tables
+            && ip rule add from 192.168.1.2 table table_b
+            && ip rule add from 192.168.2.2 table table_c
+            && ip route add default via 192.168.1.2 dev eth0 table table_b
+            && ip route add default via 192.168.2.2 dev eth0 table table_c
+            && ping 192.168.1.2"
+        cap_add:
+            - NET_ADMIN
+    host_b:
+        image: debian:latest
+        container_name: deb_host_b
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.2/24 dev eth0
+            && ip route add default via 192.168.1.1 dev eth0
+            && ping 10.0.0.1"
+        cap_add:
+            - NET_ADMIN
+    host_c:
+        image: debian:latest
+        container_name: deb_host_c
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.2.2/24 dev eth0
+            && ip route add default via 192.168.2.1 dev eth0
+            && ping 10.0.0.2"
+        cap_add:
+            - NET_ADMIN

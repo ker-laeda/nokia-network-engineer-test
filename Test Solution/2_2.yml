@@ -1,0 +1,46 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian:latest
+        container_name: deb_host_a
+        command: bash -c "ip add flush dev eth0
+            && ip link add link eth0 name eth0.50 type vlan id 50
+            && ip link add link eth0 name eth0.60 type vlan id 60
+            && ip netns add vrf_B
+            && ip netns add vrf_C
+            && ip link set eth0.50 netns vrf_B
+            && ip link set eth0.60 netns vrf_C
+            && ip netns exec vrf_B ip addr add 192.168.1.1/24 dev eth0.50
+            && ip netns exec vrf_C ip addr add 192.168.2.1/24 dev eth0.60
+            && ip netns exec vrf_B ip link set eth0.50 up
+            && ip netns exec vrf_C ip link set eth0.60 up
+            && ip netns exec vrf_B ip route add default via 192.168.1.2 dev eth0.50
+            && ip netns exec vrf_C ip route add default via 192.168.2.2 dev eth0.60
+            && ip netns exec vrf_B ping 192.168.1.2"
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+    host_b:
+        image: debian:latest
+        container_name: deb_host_b
+        command: bash -c "ip add flush dev eth0
+            && ip add flush dev eth0
+            && ip link add link eth0 name eth0.50 type vlan id 50
+            && ip link set eth0.50 up
+            && ip addr add 192.168.1.2/24 dev eth0.50
+            && ip route add default via 192.168.1.1 dev eth0.50
+            && ping 192.168.1.1"
+        cap_add:
+            - NET_ADMIN
+    host_c:
+        image: debian:latest
+        container_name: deb_host_c
+        command: bash -c "ip add flush dev eth0
+            && ip add flush dev eth0
+            && ip link add link eth0 name eth0.60 type vlan id 60
+            && ip link set eth0.60 up
+            && ip addr add 192.168.2.2/24 dev eth0.60
+            && ip route add default via 192.168.2.1 dev eth0.60
+            && ping 192.168.2.1"
+        cap_add:
+            - NET_ADMIN

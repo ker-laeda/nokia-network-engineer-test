@@ -1,0 +1,34 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian:latest
+        container_name: deb_host_a
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.1/24 dev eth0
+            && ping 192.168.1.3"
+        cap_add:
+            - NET_ADMIN
+        depends_on:
+            - host_c
+    host_b:
+        image: debian:latest
+        container_name: deb_host_b
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.2/24 dev eth0
+            && ping 192.168.1.3"
+        cap_add:
+            - NET_ADMIN
+        depends_on:
+            - host_c
+    host_c:
+        image: debian:latest
+        container_name: deb_host_c
+        command: bash -c "apt update
+            && apt install -y iptables
+            && ip add flush dev eth0
+            && ip addr add 192.168.1.3/24 dev eth0
+            && iptables -A INPUT -s 192.168.1.1 -j ACCEPT
+            && iptables -P INPUT DROP
+            && ping 192.168.1.1"
+        cap_add:
+            - NET_ADMIN

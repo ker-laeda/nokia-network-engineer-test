@@ -1,0 +1,78 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian
+        container_name: host_a
+        networks:
+            br_new_1:
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+        volumes:
+            - ./7/host_a/quagga:/home/quagga:ro
+        command: bash -c "apt update
+            && apt install -y initscripts quagga
+            && ip add flush dev eth0
+            && ip addr add 10.0.0.2/30 dev eth0
+            && rm -rf /etc/quagga/*
+            && cp /home/quagga/* /etc/quagga/
+            && service zebra start
+            && service bgpd start
+            && sleep 1m
+            && ping 10.0.0.6"
+        depends_on:
+            - host_b
+        restart: always
+    host_b:
+        image: debian
+        container_name: host_b
+        networks:
+            br_new_1:
+            br_new_2:
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+        volumes:
+            - ./7/host_b/quagga:/home/quagga:ro
+        command: bash -c "apt-get update
+            && apt-get autoremove -y
+            && apt-get install -y initscripts quagga
+            && ip add flush dev eth0
+            && ip add flush dev eth1
+            && ip addr add 10.0.0.1/30 dev eth0
+            && ip addr add 10.0.0.5/30 dev eth1
+            && rm -rf /etc/quagga/*
+            && cp /home/quagga/* /etc/quagga/
+            && service zebra start
+            && service bgpd start
+            && while sleep 5; do :; done"
+    host_c:
+        image: debian
+        container_name: host_c
+        networks:
+            br_new_2:
+        cap_add:
+            - NET_ADMIN
+            - SYS_ADMIN
+        volumes:
+            - ./7/host_c/quagga:/home/quagga:ro
+        command: bash -c "apt update
+            && apt install -y initscripts quagga
+            && ip add flush dev eth0
+            && ip addr add 10.0.0.6/30 dev eth0
+            && rm -rf /etc/quagga/*
+            && cp /home/quagga/* /etc/quagga/
+            && service zebra start
+            && service bgpd start
+            && sleep 1m
+            && ping 10.0.0.2"
+        depends_on:
+            - host_b
+        restart: always
+networks:
+    br_new_1:
+        ipam:
+            driver: default
+    br_new_2:
+        ipam:
+            driver: default

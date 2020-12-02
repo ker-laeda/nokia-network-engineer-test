@@ -1,0 +1,92 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian:latest
+        container_name: deb_host_a
+        networks:
+            br_new_1:
+        cap_add:
+            - NET_ADMIN
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.2/24 dev eth0
+            && ip route add 192.168.3.0/24 via 192.168.1.1 dev eth0
+            && ping 192.168.3.2"
+        depends_on:
+            - host_b
+            - host_c
+    host_b:
+        image: debian:latest
+        container_name: deb_host_b
+        networks:
+            br_new_1:
+            br_new_2:
+        privileged: true
+        command: bash -c "apt update
+            && apt install procps -y
+            && sysctl -w net.ipv4.ip_forward=1
+            && ip add flush dev eth0
+            && ip add flush dev eth1
+            && ip addr add 192.168.1.1/24 dev eth0
+            && ip link add name dum0 type dummy
+            && ip link set dum0 up
+            && ip address add 192.168.2.1/32 dev dum0
+            && ip addr add 10.0.0.1/24 dev eth1
+            && ip route add 192.168.2.2 dev eth1 src 192.168.2.1
+            && ip route add 192.168.3.0/24 via 192.168.2.2 dev eth1
+            && ip xfrm state add src 10.0.0.1 dst 10.0.0.2 proto esp spi 0x7bcfb918 reqid 0x7bcfb918 mode tunnel auth sha256 0x76cc56dfea8ad083aa99fc3f12c19df3a852b2563f8ea57ab9ea8f901ca97373 enc aes 0x65f13b974ed0a4e31d0969a0ba03fdac14bcf0c45d2f0805760c37e438ca4a6b
+            && ip xfrm state add src 10.0.0.2 dst 10.0.0.1 proto esp spi 0x7bcfb918 reqid 0x7bcfb918 mode tunnel auth sha256 0x76cc56dfea8ad083aa99fc3f12c19df3a852b2563f8ea57ab9ea8f901ca97373 enc aes 0x65f13b974ed0a4e31d0969a0ba03fdac14bcf0c45d2f0805760c37e438ca4a6b
+            && ip xfrm policy add src 192.168.2.1 dst 192.168.2.2 dir out tmpl src 10.0.0.1 dst 10.0.0.2 proto esp reqid 0x7bcfb918 mode tunnel
+            && ip xfrm policy add src 192.168.2.2 dst 192.168.2.1 dir in tmpl src 10.0.0.2 dst 10.0.0.1 proto esp reqid 0x7bcfb918 mode tunnel
+            && ip xfrm state
+            && ip xfrm policy
+            && while sleep 5; do :; done"
+    host_c:
+        image: debian:latest
+        container_name: deb_host_c
+        networks:
+            br_new_2:
+            br_new_3:
+        privileged: true
+        command: bash -c "apt update
+            && apt install procps -y
+            && sysctl -w net.ipv4.ip_forward=1
+            && ip add flush dev eth0
+            && ip add flush dev eth1
+            && ip addr add 10.0.0.2/24 dev eth0
+            && ip link add name dum0 type dummy
+            && ip link set dum0 up
+            && ip address add 192.168.2.2/32 dev dum0
+            && ip addr add 192.168.3.1/24 dev eth1
+            && ip route add 192.168.2.1 dev eth0 src 192.168.2.2
+            && ip route add 192.168.1.0/24 via 192.168.2.1 dev eth0
+            && ip xfrm state add src 10.0.0.1 dst 10.0.0.2 proto esp spi 0x7bcfb918 reqid 0x7bcfb918 mode tunnel auth sha256 0x76cc56dfea8ad083aa99fc3f12c19df3a852b2563f8ea57ab9ea8f901ca97373 enc aes 0x65f13b974ed0a4e31d0969a0ba03fdac14bcf0c45d2f0805760c37e438ca4a6b
+            && ip xfrm state add src 10.0.0.2 dst 10.0.0.1 proto esp spi 0x7bcfb918 reqid 0x7bcfb918 mode tunnel auth sha256 0x76cc56dfea8ad083aa99fc3f12c19df3a852b2563f8ea57ab9ea8f901ca97373 enc aes 0x65f13b974ed0a4e31d0969a0ba03fdac14bcf0c45d2f0805760c37e438ca4a6b
+            && ip xfrm policy add src 192.168.2.2 dst 192.168.2.1 dir out tmpl src 10.0.0.2 dst 10.0.0.1 proto esp reqid 0x7bcfb918 mode tunnel
+            && ip xfrm policy add src 192.168.2.1 dst 192.168.2.2 dir in tmpl src 10.0.0.1 dst 10.0.0.2 proto esp reqid 0x7bcfb918 mode tunnel
+            && ip xfrm state
+            && ip xfrm policy
+            && sleep 7h"
+    host_d:
+        image: debian:latest
+        container_name: deb_host_d
+        networks:
+            br_new_3:
+        cap_add:
+            - NET_ADMIN
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.3.2/24 dev eth0
+            && ip route add 192.168.1.0/24 via 192.168.3.1 dev eth0
+            && ping 192.168.1.2"
+        depends_on:
+            - host_b
+            - host_c
+networks:
+    br_new_1:
+        ipam:
+            driver: default
+    br_new_2:
+        ipam:
+            driver: default
+    br_new_3:
+        ipam:
+            driver: default

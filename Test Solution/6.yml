@@ -1,0 +1,59 @@
+version: "3.3"
+services:
+    host_a:
+        image: nginx
+        container_name: host_a
+        networks:
+            br_new_1:
+        cap_add:
+            - NET_ADMIN
+        volumes:
+            - ./6/host_a/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./6/host_a/html:/usr/share/nginx/html:ro
+        command: bash -c "apt update
+            && apt install iproute2 -y
+            && ip add flush dev eth0
+            && ip addr add 192.168.1.2/24 dev eth0
+            && nginx"
+    host_b:
+        image: nginx
+        container_name: host_b
+        networks:
+            br_new_1:
+            br_new_2:
+        cap_add:
+            - NET_ADMIN
+        volumes:
+            - ./6/host_b/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+            - ./6/host_b/ssl:/etc/nginx/ssl:ro
+        command: bash -c "apt update
+            && apt install iproute2 -y
+            && apt install openssl -y
+            && ip add flush dev eth0
+            && ip add flush dev eth1
+            && ip addr add 192.168.1.1/24 dev eth0
+            && ip addr add 192.168.2.1/24 dev eth1
+            && nginx"
+    host_c:
+        image: debian
+        container_name: host_c
+        networks:
+            br_new_2:
+        cap_add:
+            - NET_ADMIN
+        command: bash -c "apt update
+            && apt install curl -y
+            && ip add flush dev eth0
+            && ip addr add 192.168.2.2/24 dev eth0
+            && curl -k https://192.168.2.1/"
+        depends_on:
+            - host_a
+            - host_b
+        restart: always 
+networks:
+    br_new_1:
+        ipam:
+            driver: default
+    br_new_2:
+        ipam:
+            driver: default

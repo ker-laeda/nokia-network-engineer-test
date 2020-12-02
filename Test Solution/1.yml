@@ -1,0 +1,20 @@
+version: "3.3"
+services:
+    host_1:
+        image: debian:latest
+        container_name: deb_host1
+        command: bash -c "ip link add link eth0 name eth0.50 type vlan id 50
+            && ip addr add 192.168.3.1/24 dev eth0.50
+            && ip link set eth0.50 up
+            && ping 192.168.3.2"
+        cap_add:
+            - NET_ADMIN
+    host_2:
+        image: debian:latest
+        container_name: deb_host2
+        command: bash -c "ip link add link eth0 name eth0.50 type vlan id 50
+            && ip addr add 192.168.3.2/24 dev eth0.50
+            && ip link set eth0.50 up
+            && ping 192.168.3.1"
+        cap_add:
+            - NET_ADMIN

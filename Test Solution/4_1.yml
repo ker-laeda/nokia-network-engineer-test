@@ -1,0 +1,48 @@
+version: "3.3"
+services:
+    host_a:
+        image: debian:latest
+        container_name: deb_host_a
+        networks:
+            br_new_1:
+        cap_add:
+            - NET_ADMIN
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.1.2/24 dev eth0
+            && ip route add default via 192.168.1.1 dev eth0
+            && ping 192.168.2.2"
+        depends_on:
+            - host_b
+    host_b:
+        image: debian:latest
+        container_name: deb_host_b
+        networks:
+            br_new_1:
+            br_new_2:
+        privileged: true
+        command: bash -c "apt update && apt install procps -y && sysctl -w net.ipv4.ip_forward=1
+            && ip add flush dev eth0
+            && ip add flush dev eth1
+            && ip addr add 192.168.1.1/24 dev eth0
+            && ip addr add 192.168.2.1/24 dev eth1
+            && ping 192.168.1.2"
+    host_c:
+        image: debian:latest
+        container_name: deb_host_c
+        networks:
+            br_new_2:
+        cap_add:
+            - NET_ADMIN
+        command: bash -c "ip add flush dev eth0
+            && ip addr add 192.168.2.2/24 dev eth0
+            && ip route add default via 192.168.2.1 dev eth0
+            && ping 192.168.1.2"
+        depends_on:
+            - host_b
+networks:
+    br_new_1:
+        ipam:
+            driver: default
+    br_new_2:
+        ipam:
+            driver: default

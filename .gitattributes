@@ -1,0 +1,6 @@
+*.yml linguist-detectable=true
+*.conf linguist-detectable=false
+*.html linguist-detectable=false
+*.crt linguist-detectable=false
+*.key linguist-detectable=false
+*.pem linguist-detectable=false
